@@ -1,0 +1,38 @@
+# ---------------------------------------------------
+# Environment Variables & Secrets (CRITICAL)
+# ---------------------------------------------------
+# Ignora ficheiros de configuração com passwords e chaves API em qualquer pasta
+.env
+.env.*
+*.env
+
+# ---------------------------------------------------
+# Compiled Binaries (New setup)
+# ---------------------------------------------------
+# Ignores the entire folder where your compiled executables live
+bin/
+
+# ---------------------------------------------------
+# Compiled Object files (Standard C++ exclusions)
+# ---------------------------------------------------
+*.o
+*.obj
+*.out
+*.exe
+*.app
+
+# ---------------------------------------------------
+# VS Code Workspace Settings
+# ---------------------------------------------------
+.vscode/
+
+# ---------------------------------------------------
+# OS Generated Files
+# ---------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

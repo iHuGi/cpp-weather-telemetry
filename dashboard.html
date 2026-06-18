@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard C++ Telemetry</title>
+    <style>
+        /* CSS styling for telemetry layout */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            margin: 0; padding: 40px;
+        }
+        
+        h1 { text-align: center; color: #00ffcc; letter-spacing: 2px; }
+        
+        /* Stats dashboard container - updated for three metrics */
+        .stats { text-align: center; color: #aaa; margin-bottom: 20px; font-size: 0.9em; }
+
+        .controls { text-align: center; margin-bottom: 40px; }
+        
+        button {
+            background-color: #00ffcc; color: #121212;
+            border: none; padding: 12px 24px; font-size: 16px;
+            font-weight: bold; border-radius: 5px; cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover { background-color: #00b38f; transform: scale(1.05); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border-left: 5px solid #00ffcc;
+            border-radius: 8px; padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .card h2 { margin: 0 0 10px 0; color: #fff; font-size: 1.2em; }
+        .temp { font-size: 1.4em; font-weight: bold; margin: 10px 0; color: #00ffcc; }
+        .condition { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
+        #loading { text-align: center; color: #aaa; display: none; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>🌍 GLOBAL WEATHER TELEMETRY</h1>
+
+    <div class="stats">
+        Daily API Calls: <span id="calls-counter">0</span> |
+        Last Refresh: <span id="last-update">Never</span> |
+        Last Attempt: <span id="last-attempt">Never</span>
+    </div>
+    
+    <div class="controls">
+        <button onclick="fetchTemperatures()">Validate Temperatures</button>
+        <div id="loading">Pinging C++ Server...</div>
+    </div>
+
+    <div class="grid" id="dashboard"></div>
+
+    <script>
+        /**
+         * @brief Fetches weather telemetry from the C++ backend.
+         * Updates the UI stats and renders the city grid dynamically.
+         */
+        async function fetchTemperatures() {
+            const dashboard = document.getElementById('dashboard');
+            const loading = document.getElementById('loading');
+            
+            // UI Configuration for Local PC Timezone
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+
+            // Clear current dashboard state and show loading spinner
+            dashboard.innerHTML = '';
+            loading.style.display = 'block';
+
+            try {
+                // Perform GET request to the local C++ microservice
+                const response = await fetch('http://localhost:8080/api/weather');
+                const jsonResponse = await response.json();
+
+                // Update operational metrics in the DOM using the retrieved data
+                document.getElementById('calls-counter').innerText = jsonResponse.calls;
+                document.getElementById('last-update').innerText = new Date(jsonResponse.last_update * 1000).toLocaleTimeString(undefined, timeOptions);
+                document.getElementById('last-attempt').innerText = new Date(jsonResponse.last_attempt * 1000).toLocaleTimeString(undefined, timeOptions);
+
+                // Generate cards for each city in the telemetry list
+                jsonResponse.data.forEach(item => {
+                    const cityName = {
+                        "Evora": "Évora",
+                        "Béja": "Beja"
+                    }[item.city] || item.city;
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <h2>${cityName}</h2>
+                        <div class="temp">${item.temp} °C</div>
+                        <div class="condition">${item.condition}</div>
+                    `;
+                    dashboard.appendChild(card);
+                });
+                
+            } catch (error) {
+                // Fail-safe logic if the C++ server is unreachable
+                dashboard.innerHTML = `<h2 style="color:red; text-align:center;">[!] C++ Server Offline</h2>`;
+            } finally {
+                // Hide loading spinner regardless of request outcome
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
