@@ -8,6 +8,7 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <ctime>
 
 using namespace std;
 using json = nlohmann::json;
@@ -144,6 +145,23 @@ void weather_refresh_worker(const string& api_key) {
 
         {
             lock_guard<mutex> lock(cache.mtx);
+
+            // Reset daily API call counter at midnight to maintain accurate quota tracking
+            auto now = std::chrono::system_clock::now();
+            auto now_time_t = std::chrono::system_clock::to_time_t(now);
+            auto last_time_t = std::chrono::system_clock::to_time_t(cache.last_update);
+            
+            std::tm now_tm;
+            std::tm last_tm;
+
+            localtime_r(&now_time_t, &now_tm);
+            localtime_r(&last_time_t, &last_tm);
+
+            if (now_tm.tm_mday != last_tm.tm_mday || now_tm.tm_mon != last_tm.tm_mon || now_tm.tm_year != last_tm.tm_year) {
+                cache.daily_calls = 0;
+            }
+            
+            // Update cache only if valid data was received to prevent overwriting existing data with empty payloads
             if (!new_data.empty()) {
                 cache.data = move(new_data);
                 cache.last_update = chrono::system_clock::now();
