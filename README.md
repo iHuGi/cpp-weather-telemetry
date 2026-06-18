@@ -1,4 +1,3 @@
-```markdown
 # C++ Weather Telemetry API
 
 A high-performance microservice architecture designed to ingest real-time atmospheric data, process the telemetry stream, and serve it via a local REST API. This system demonstrates the power of C++20 for network-bound tasks, utilising **libcurl** for non-blocking network I/O and the **Crow** framework for high-concurrency web delivery.
