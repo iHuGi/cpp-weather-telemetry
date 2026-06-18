@@ -95,9 +95,3 @@ The project includes a lightweight, dark-mode dashboard (HTML/JS) designed for l
 * **Environment Variables:** All secrets and API keys are strictly excluded via `.gitignore`. Ensure a `.env` file exists in the root directory with the `WEATHER_API` key defined.
 * **Binary Isolation:** All compiled objects and executables are siloed in the `bin/` directory.
 * **Configuration:** The project utilises a manual build pipeline for optimal transparency into the compilation and linking process.
-
-```
-
-Faz o *commit*, dá o *push* e vai festejar que o projeto está fechado com chave de ouro! 🥩⚙️🚀
-
-```
