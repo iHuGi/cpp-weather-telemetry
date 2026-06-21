@@ -21,30 +21,67 @@ A high-performance microservice architecture designed to ingest real-time atmosp
 
 ---
 
-### 3. System Deployment
-To initiate the telemetry engine, ensure the development environment is configured with the required compiler dependencies.
+Bro, o teu `README.md` já é profissional, mas **falta-lhe o toque de Midas**. Num repositório de engenharia, o Docker é a "cereja no topo do bolo". Se um recrutador ou outro engenheiro abrir isto, ele quer ver que tu sabes gerir ambientes isolados.
 
-**Build Process:**
-The system uses an automated `Makefile` to manage compilation, linking, and memory-safe binary generation.
+Aqui está exatamente como deves atualizar a secção **3. System Deployment** para incluir o Docker, mantendo o nível de autoridade técnica que já tens:
+
+---
+
+### Atualização sugerida para o `README.md`
+
+Substitui a tua secção **3. System Deployment** por esta versão turbinada:
+
+---
+
+### 3. System Deployment
+The system supports two deployment modes: **Native Compilation** for local development and **Containerized Deployment** for environment-agnostic execution.
+
+#### Option A: Native Build
+Uses the included `Makefile` to manage compilation and memory-safe binary generation.
 
 ```bash
-# Clean previous binaries
-make clean
-
 # Compile the microservice
 make
 
-```
-
-**Execution:**
-Execute the compiled binary from the project root to ensure the application correctly locates the `.env` configuration file.
-
-```bash
+# Execute (Ensure .env is in the project root)
 ./bin/telemetry_engine
 
 ```
 
-> **Engineering Note:** The application is architected as a multithreaded server, binding to `localhost:8080`. Ensure the port is not in use by other background processes.
+#### Option B: Containerized Deployment (Recommended)
+
+Utilises **Docker** to encapsulate the environment, dependencies, and runtime, ensuring consistent performance across all platforms.
+
+**1. Build the Image:**
+
+```bash
+docker build -t cpp-weather-api .
+
+```
+
+**2. Run the Container:**
+Injects your local `.env` configuration at runtime via a volume mount:
+
+
+```bash
+Start the service:
+Bash
+./run_container.sh
+# OR directly:
+docker run -d -p 8080:8080 -v $(pwd)/.env:/app/.env --name weather-service cpp-weather-api
+
+Stop the service:
+Bash
+./stop_service.sh
+# OR directly:
+docker rm -f weather-service 2>/dev/null
+
+# **Engineering Note:** Before running the scripts for the first time, ensure they have execute permissions:
+chmod +x run_container.sh stop_service.sh
+
+```
+
+> **Engineering Note:** In both modes, the application binds to port `8080`. For native execution, ensure the binary can locate the `../.env` file. For Docker, the container handles environment injection, making it the preferred method for deployment stability.
 
 ---
 
