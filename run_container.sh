@@ -5,6 +5,7 @@ docker rm -f weather-service 2>/dev/null
 
 # Start the new version of the container
 echo "Starting weather-service..."
-docker run -d -p 8080:8080 -v $(pwd)/.env:/app/.env --name weather-service cpp-weather-api
+#docker run -d -p 8080:8080 -v $(pwd)/.env:/app/.env --name weather-service cpp-weather-api
+docker run -d -p 8080:8080 -v "$(pwd)/.env:/app/.env" --restart unless-stopped --name weather-service cpp-weather-api
 
 echo "weather-service started with success!"
