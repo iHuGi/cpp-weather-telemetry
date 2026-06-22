@@ -5,52 +5,44 @@ A high-performance microservice architecture designed to ingest real-time atmosp
 ---
 
 ### 1. Architectural Stack
+
 * **Language:** C++20
 * **Network I/O:** `libcurl` (Asynchronous/Multiplexed HTTP via `curl_multi`)
 * **Web Framework:** `Crow` (Multithreaded REST API)
 * **Data Parsing:** `nlohmann/json`
 * **Concurrency:** `std::thread`, `std::mutex`, `std::lock_guard`
-* **Infrastructure:** Linux/WSL2 (Target Runtime)
+* **Infrastructure:** Docker (Multi-stage) / Linux / WSL2
 
 ---
 
 ### 2. Key Features
+
 * **Thread-Safe In-Memory Cache:** Decouples the background data ingestion from the API response layer, ensuring zero-latency reads for incoming HTTP requests.
 * **API Rate Limiting Protection:** The backend worker sleeps between execution cycles, maintaining a strict daily quota (tracked dynamically) while serving cached telemetry instantly.
 * **Observability Metrics:** Exposes system health data alongside the weather payload, including `last_update` (last successful background fetch) and `last_attempt` (last API request heartbeat).
 
 ---
 
-Bro, o teu `README.md` já é profissional, mas **falta-lhe o toque de Midas**. Num repositório de engenharia, o Docker é a "cereja no topo do bolo". Se um recrutador ou outro engenheiro abrir isto, ele quer ver que tu sabes gerir ambientes isolados.
-
-Aqui está exatamente como deves atualizar a secção **3. System Deployment** para incluir o Docker, mantendo o nível de autoridade técnica que já tens:
-
----
-
-### Atualização sugerida para o `README.md`
-
-Substitui a tua secção **3. System Deployment** por esta versão turbinada:
-
----
-
 ### 3. System Deployment
+
 The system supports two deployment modes: **Native Compilation** for local development and **Containerized Deployment** for environment-agnostic execution.
 
 #### Option A: Native Build
+
 Uses the included `Makefile` to manage compilation and memory-safe binary generation.
 
 ```bash
 # Compile the microservice
 make
 
-# Execute (Ensure .env is in the project root)
-./bin/telemetry_engine
+# Execute (Ensure .env is in the project root or parent directory)
+./bin/telemetry_engine_classes
 
 ```
 
 #### Option B: Containerized Deployment (Recommended)
 
-Utilises **Docker** to encapsulate the environment, dependencies, and runtime, ensuring consistent performance across all platforms.
+Utilises a **Multi-Stage Docker Build** to encapsulate the environment, keeping the final production image lightweight and secure. It injects local `.env` configurations at runtime via a volume mount.
 
 **1. Build the Image:**
 
@@ -60,39 +52,32 @@ docker build -t cpp-weather-api .
 ```
 
 **2. Run the Container:**
-Injects your local `.env` configuration at runtime via a volume mount:
-
 
 ```bash
-Start the service:
-Bash
-./run_container.sh
-# OR directly:
-docker run -d -p 8080:8080 -v $(pwd)/.env:/app/.env --name weather-service cpp-weather-api
-
-Stop the service:
-Bash
-./stop_service.sh
-# OR directly:
-docker rm -f weather-service 2>/dev/null
-
-# **Engineering Note:** Before running the scripts for the first time, ensure they have execute permissions:
+# Grant execution permissions (first time only)
 chmod +x run_container.sh stop_service.sh
+
+# Start the service
+./run_container.sh
+
+# Stop the service
+./stop_service.sh
 
 ```
 
-> **Engineering Note:** In both modes, the application binds to port `8080`. For native execution, ensure the binary can locate the `../.env` file. For Docker, the container handles environment injection, making it the preferred method for deployment stability.
+> **Engineering Note:** In both modes, the application binds to port `8080`. The system defaults to `DEV` mode (open CORS). To run in production mode with strict CORS boundaries, pass the `--prod` argument to the binary or runtime script.
 
 ---
 
 ### 4. API Specification
 
-The system provides a single, high-throughput endpoint for telemetry consumption.
+The system provides a single, high-throughput endpoint for telemetry consumption, plus a health probe.
 
-* **Endpoint:** `/api/weather`
+* **Telemetry Endpoint:** `/api/weather`
+* **Health Endpoint:** `/health`
 * **Method:** `GET`
 * **Format:** `JSON`
-* **CORS:** Enabled (`Access-Control-Allow-Origin: *`)
+* **CORS:** Dynamic (Open `*` in development; restricted to frontend URL when using `--prod`).
 
 **Payload Example:**
 
@@ -116,18 +101,18 @@ The system provides a single, high-throughput endpoint for telemetry consumption
 
 ### 5. Frontend Integration
 
-The project includes a lightweight, dark-mode dashboard (HTML/JS) designed for low-latency visual telemetry.
+The project includes a lightweight, dark-mode dashboard (`dashboard.html` / JS) designed for low-latency visual telemetry.
 
 **Deployment:**
 
-1. Ensure the C++ backend is active (`./bin/telemetry_engine`).
-2. Open the `dashboard.html` file directly in your preferred browser, or host it locally via a development server (e.g., VSCode Live Server).
-3. Click **"Validate Temperatures"** to trigger an asynchronous fetch request to the backend. The UI will automatically parse the UNIX timestamps into local timezones.
+1. Ensure the C++ backend is active.
+2. Open the `dashboard.html` file directly in your preferred browser, or host it locally via a development server (e.g., VS Code Live Server).
+3. The UI will automatically fetch the payload and parse the UNIX timestamps into local timezones.
 
 ---
 
 ### 6. Repository Hygiene
 
-* **Environment Variables:** All secrets and API keys are strictly excluded via `.gitignore`. Ensure a `.env` file exists in the root directory with the `WEATHER_API` key defined.
+* **Environment Variables:** All secrets and API keys are strictly excluded via `.gitignore`. Ensure a `.env` file exists with the `WEATHER_API` key defined.
 * **Binary Isolation:** All compiled objects and executables are siloed in the `bin/` directory.
-* **Configuration:** The project utilises a manual build pipeline for optimal transparency into the compilation and linking process.
+* **Infrastructure as Code:** Shell scripts handle Docker lifecycle management, providing a clean developer experience.
