@@ -35,17 +35,50 @@
             margin: 0 auto;
         }
 
+        /* Card styling with relative positioning for tooltip anchor */
         .card {
             background-color: #1e1e1e;
             border-left: 5px solid #00ffcc;
             border-radius: 8px; padding: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+            cursor: help;
         }
         
         .card h2 { margin: 0 0 10px 0; color: #fff; font-size: 1.2em; }
         .temp { font-size: 1.4em; font-weight: bold; margin: 10px 0; color: #00ffcc; }
         .condition { font-size: 0.7em; color: #aaa; text-transform: uppercase; }
         #loading { text-align: center; color: #aaa; display: none; margin-top: 20px; }
+
+        /* Tooltip logic: Hidden by default, absolute position */
+        .card::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1a1a1a;
+            color: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-line;
+            text-align: center;
+            border: 1px solid #00ffcc;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* Show tooltip on hover */
+        .card:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
@@ -73,8 +106,7 @@
         async function fetchTemperatures() {
             const dashboard = document.getElementById('dashboard');
             const loading = document.getElementById('loading');
-            
-            // UI Configuration for Local PC Timezone
+
             const timeOptions = {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -82,21 +114,18 @@
                 hour12: false
             };
 
-            // Clear current dashboard state and show loading spinner
             dashboard.innerHTML = '';
             loading.style.display = 'block';
 
             try {
-                // Perform GET request to the local C++ microservice
                 const response = await fetch('http://localhost:8080/api/weather');
                 const jsonResponse = await response.json();
 
-                // Update operational metrics in the DOM using the retrieved data
                 document.getElementById('calls-counter').innerText = jsonResponse.calls;
                 document.getElementById('last-update').innerText = new Date(jsonResponse.last_update * 1000).toLocaleTimeString(undefined, timeOptions);
                 document.getElementById('last-attempt').innerText = new Date(jsonResponse.last_attempt * 1000).toLocaleTimeString(undefined, timeOptions);
 
-                // Generate cards for each city in the telemetry list
+                // Iterate through telemetry data and build cards
                 jsonResponse.data.forEach(item => {
                     const cityName = {
                         "Evora": "Évora",
@@ -105,6 +134,15 @@
 
                     const card = document.createElement('div');
                     card.className = 'card';
+                    
+                    // Inject coordinates into data-tooltip attribute for CSS hover display
+                    card.setAttribute('data-tooltip',
+                        `Lat: ${item.lat}\n Lon: ${item.lon}\n` +
+                        `-------------------\n` +
+                        `Max: ${item.temp_max}°C\n` +
+                        `Min: ${item.temp_min}°C`
+                    );
+                    
                     card.innerHTML = `
                         <h2>${cityName}</h2>
                         <div class="temp">${item.temp} °C</div>
@@ -114,10 +152,8 @@
                 });
                 
             } catch (error) {
-                // Fail-safe logic if the C++ server is unreachable
                 dashboard.innerHTML = `<h2 style="color:red; text-align:center;">[!] C++ Server Offline</h2>`;
             } finally {
-                // Hide loading spinner regardless of request outcome
                 loading.style.display = 'none';
             }
         }

@@ -185,7 +185,11 @@ public:
                         crow::json::wvalue city;
                         city["city"] = string(data["name"]);
                         city["temp"] = data["main"]["temp"].get<double>();
+                        city["temp_max"] = data["main"]["temp_max"].get<double>();
+                        city["temp_min"] = data["main"]["temp_min"].get<double>();
                         city["condition"] = string(data["weather"][0]["main"]);
+                        city["lon"] = data["coord"]["lon"].get<double>();
+                        city["lat"] = data["coord"]["lat"].get<double>();
                         new_data.push_back(move(city));
                     }
                 } catch (...) {}
