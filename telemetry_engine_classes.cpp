@@ -134,9 +134,13 @@ public:
     static void startBackgroundWorker(
         const string& api_key,
         const vector<string>& cities,
-        WeatherCache& cache_ref) {
+        WeatherCache& cache_ref,
+        std::atomic<bool>& running,
+        std::condition_variable& cv,
+        std::mutex& cv_m
+    ) {
 
-        while (true) {
+        while (running) {
 
             crow::json::wvalue::list new_data;
             CURLM* multi = curl_multi_init();
@@ -148,11 +152,13 @@ public:
                 CURL* c = curl_easy_init();
                 if (!c) continue;
                 handles.push_back(c);
-
+                
+                // Escape city names to ensure URL compatibility, as libcurl requires raw C-style strings
                 char* encoded = curl_easy_escape(c, cities[i].c_str(), cities[i].size());
                 string url = "https://api.openweathermap.org/data/2.5/weather?q=" + string(encoded) + "&appid=" + api_key + "&units=metric";
                 curl_free(encoded);
 
+                // Configure individual curl handle for the current city request
                 curl_easy_setopt(c, CURLOPT_URL, url.c_str());
                 curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, WriteCallback);
                 curl_easy_setopt(c, CURLOPT_WRITEDATA, &responses[i]);
@@ -197,8 +203,12 @@ public:
 
             cache_ref.updateCache(move(new_data), cities.size());
 
-            // Pauses the worker thread for 1 hour to respect API rate limits
-            this_thread::sleep_for(chrono::hours(1));
+            // Throttling handled by condition_variable shutdown signal
+            // this_thread::sleep_for(chrono::hours(1));
+
+            // Wait for 1 hour or until shutdown signal (running == false)
+            std::unique_lock<std::mutex> lock(cv_m);
+            cv.wait_for(lock, std::chrono::hours(1), [&running] { return !running; });
         }
     }
 };
@@ -220,6 +230,9 @@ public:
 
         setupRoutes();
     }
+
+    // Triggers an immediate and clean shutdown of the web server
+    void stop() { app.stop(); }
 
     void setupRoutes() {
 
@@ -301,17 +314,38 @@ int main(int argc, char * argv[]) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
     WeatherCache cacheManager;
 
+    // Start background worker
+    std::atomic<bool> running{true};
+    std::condition_variable cv;
+    std::mutex cv_m;
+
     thread worker(
         WeatherFetcher::startBackgroundWorker,
         key,
         cities,
-        ref(cacheManager)
+        ref(cacheManager),
+        ref(running),
+        ref(cv),
+        ref(cv_m)
     );
 
-    worker.detach();
+    // Replaced detach() with join() to ensure graceful shutdown via atomic signal
+    // worker.detach();
 
+    // Wait for the web server to finish (Crow's run() blocks until shutdown)
     WebServer server(cacheManager, port, current_env);
     server.run();
+
+    // Graceful worker shutdown
+    cout << "\n[SHUTDOWN] Signaling background worker..." << endl;
+    running = false;
+    // Wake the worker thread to process the shutdown signal
+    cv.notify_one();
+
+    // Ensure the background worker completes its current cycle and exits cleanly
+    if (worker.joinable()) {
+        worker.join();
+    }
 
     curl_global_cleanup();
     return 0;
