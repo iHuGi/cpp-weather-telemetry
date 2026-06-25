@@ -4,6 +4,33 @@
     <meta charset="UTF-8">
     <title>Dashboard C++ Telemetry</title>
     <style>
+        /* Footer styling */
+        footer {
+            text-align: center;
+            padding: 25px 10px;
+            margin-top: 60px;
+            border-top: 1px solid #333;
+            color: #aaa;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        footer p {
+            margin: 5px 0;
+        }
+
+        footer a {
+            color: #00ffcc;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        footer a:hover {
+            color: #ffffff;
+            text-shadow: 0 0 8px #00ffcc;
+        }
+
         /* CSS styling for telemetry layout */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -79,6 +106,29 @@
             opacity: 1;
             visibility: visible;
         }
+
+        /* Modal Background */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+
+        /* Modal Box */
+        .modal-content {
+            background-color: #1e1e1e; border: 1px solid #00ffcc;
+            border-radius: 8px; padding: 30px; max-width: 600px; width: 90%;
+            color: #fff; position: relative; box-shadow: 0 10px 30px rgba(0,255,204,0.2);
+            line-height: 1.6;
+        }
+
+        .modal-content p { color: #ccc; }
+        .modal-content code { background-color: #333; padding: 2px 6px; border-radius: 4px; color: #00ffcc; }
+
+        .close-btn {
+            position: absolute; top: 15px; right: 20px;
+            color: #00ffcc; font-size: 24px; cursor: pointer; font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -129,7 +179,8 @@
                 jsonResponse.data.forEach(item => {
                     const cityName = {
                         "Evora": "Évora",
-                        "Béja": "Beja"
+                        "Béja": "Beja",
+                        "Lisbon": "Lisboa",
                     }[item.city] || item.city;
 
                     const card = document.createElement('div');
@@ -137,7 +188,7 @@
                     
                     // Inject coordinates into data-tooltip attribute for CSS hover display
                     card.setAttribute('data-tooltip',
-                        `Lat: ${item.lat}\n Lon: ${item.lon}\n` +
+                        `Lat: ${item.lat} | Lon: ${item.lon}\n` +
                         `-------------------\n` +
                         `Max: ${item.temp_max}°C\n` +
                         `Min: ${item.temp_min}°C`
@@ -157,6 +208,46 @@
                 loading.style.display = 'none';
             }
         }
+
+        // Modal Logic
+        function openModal() {
+            document.getElementById('techModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('techModal').style.display = 'none';
+        }
     </script>
+
+    <div id="techModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 style="color: #00ffcc; margin-top:0;">⚙️ Technical Overview</h2>
+            
+            <p><strong>Application Purpose:</strong><br>
+            This dashboard provides real-time atmospheric telemetry for cities across Portugal. 
+            By hovering over any city card, you can view precise geographical coordinates alongside the 
+            current maximum and minimum temperatures at that exact moment.</p>
+
+            <p><strong>Architectural Stack:</strong><br>
+            Built natively in <strong>C++20</strong> on Linux, the backend operates on a strict multi-threaded architecture. 
+            It utilizes <code>libcurl</code> for non-blocking network I/O and the <code>Crow</code> 
+            framework for high-concurrency REST API delivery.</p>
+            
+            <p><strong>Thread Safety & Lifecycle:</strong><br>
+            The background telemetry ingest is completely decoupled from the API serving layer 
+            via <code>std::atomic</code> signals and a locked <code>std::mutex</code> cache. 
+            This ensures zero-latency reads for incoming HTTP requests and proper resource cleanup during 
+            <em>graceful shutdowns</em>. The entire microservice is containerized via Docker for lightweight, 
+            environment-agnostic deployment.</p>
+        </div>
+    </div>
 </body>
+<footer>
+    <p>Developed with C++ by <strong>Hugo Azevedo</strong></p>
+    <p>
+        <a href="javascript:void(0);" onclick="openModal()">Technical Overview</a> | 
+        <a href="https://github.com/iHuGi/cpp-weather-telemetry" target="_blank" rel="noopener">GitHub Repo</a>
+    </p>
+</footer>
 </html>
