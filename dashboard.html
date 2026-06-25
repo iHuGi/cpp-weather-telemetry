@@ -188,7 +188,8 @@
                     
                     // Inject coordinates into data-tooltip attribute for CSS hover display
                     card.setAttribute('data-tooltip',
-                        `Lat: ${item.lat} | Lon: ${item.lon}\n` +
+                        `Lat: ${item.lat}\n` +
+                        `Lon: ${item.lon}\n` +
                         `-------------------\n` +
                         `Max: ${item.temp_max}°C\n` +
                         `Min: ${item.temp_min}°C`
