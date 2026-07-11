@@ -3,6 +3,8 @@
 # ============================================================================
 FROM ubuntu:24.04 AS builder
 
+ARG CXXFLAGS="-std=c++20 -O3 -DNDEBUG -Wall -Wextra"
+
 RUN apt-get update && apt-get install -y \
     g++ \
     make \
@@ -15,18 +17,18 @@ WORKDIR /src
 COPY . .
 
 RUN mkdir -p bin && \
-    g++ -std=c++20 -Wall -Wextra \
+    g++ ${CXXFLAGS} \
     telemetry_engine_classes.cpp \
     -o bin/telemetry_engine_classes \
-    -lcurl -pthread
-
+    -lcurl \
+    -pthread
 
 # ============================================================================
 # STAGE 2: RUNTIME
 # ============================================================================
 FROM ubuntu:24.04
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 \
     && rm -rf /var/lib/apt/lists/*
 

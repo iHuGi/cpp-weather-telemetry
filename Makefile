@@ -1,6 +1,7 @@
 # Compiler and compilation flags
 CXX = g++
-CXXFLAGS = -std=c++20 -Wall -Wextra
+# CXXFLAGS = -std=c++20 -Wall -Wextra
+CXXFLAGS = -std=c++20 -O3 -DNDEBUG -Wall -Wextra
 
 # Linker libraries
 # -lcurl   : Required for OpenWeather API HTTP requests
