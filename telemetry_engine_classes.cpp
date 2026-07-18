@@ -177,6 +177,20 @@ public:
                 curl_multi_perform(multi, &still_running);
             }
 
+            // Check multi-handle transfer results and log any request errors
+            // NOTE: Run this for logs: docker logs weather-service
+            // You will see something like: [FETCHER ERROR] Curl failed: Problem with the SSL CA cert (path? access rights?)
+            int msgs_left;
+            CURLMsg* msg;
+            while ((msg = curl_multi_info_read(multi, &msgs_left))) {
+                if (msg->msg == CURLMSG_DONE) {
+                if (msg->data.result != CURLE_OK) {
+                    cerr << "[FETCHER ERROR] Curl failed: "
+                 << curl_easy_strerror(msg->data.result) << endl;
+                    }
+                }
+            }
+
             for (auto c : handles) {
                 curl_multi_remove_handle(multi, c);
                 curl_easy_cleanup(c);
