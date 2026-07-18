@@ -89,8 +89,12 @@ The system provides a single, high-throughput endpoint for telemetry consumption
     "data": [
         {
             "city": "Lisbon",
+            "temp": 28.64,
+            "temp_max": 29.10,
+            "temp_min": 27.85,
             "condition": "Clear",
-            "temp": 28.64
+            "lat": 38.7167,
+            "lon": -9.1333
         }
     ]
 }

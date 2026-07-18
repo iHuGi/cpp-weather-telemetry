@@ -305,7 +305,7 @@ int main(int argc, char * argv[]) {
     }
 
     const vector<string> cities = {
-        "Aveiro","Beja","Braga","Braganca","Castelo Branco",
+        "Aveiro","Beja,PT","Braga","Braganca","Castelo Branco",
         "Coimbra","Evora","Faro","Funchal","Guarda",
         "Leiria","Lisbon","Ponta Delgada","Portalegre","Porto",
         "Santarem","Setubal","Viana do Castelo","Vila Real","Viseu"
