@@ -1,0 +1,15 @@
+name: cpp-weather-telemetry
+
+services:
+  weather-service:
+    image: cpp-weather-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weather-service
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./.env:/app/.env
+    # restart: unless-stopped # Uncomment for production deployment to ensure high availability
+    # command: ["--prod"]     # Pass "$@" runtime arguments here (e.g., to run in production mode)
