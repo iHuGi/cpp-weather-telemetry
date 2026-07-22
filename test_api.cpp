@@ -17,12 +17,11 @@ TEST_CASE("Validate JSON payload and API call counter", "[cache]") {
         // Inject mock data into the cache (simulating 1 call)
         cache.updateCache(std::move(mock_data), 1);
         
-        // Extract the snapshot (returns a crow::json::wvalue)
-        auto snapshot = cache.getSnapshot();
+        // Retrieves the pre-serialized cache snapshot as a string payload
+        std::string snapshot = cache.getCachedJson();
 
-        // Convert Crow's write-only wvalue to a string, then parse it with nlohmann::json
-        // This makes the data readable and easily testable
-        auto parsed_json = json::parse(snapshot.dump());
+        // Parses the snapshot string back into a JSON object to validate structure and contents for unit testing
+        auto parsed_json = json::parse(snapshot);
 
         // VALIDATIONS (The test only passes if these are perfectly true)
         REQUIRE(parsed_json["calls"].get<int>() == 1);

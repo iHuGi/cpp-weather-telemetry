@@ -137,8 +137,8 @@
 
     <div class="stats">
         Daily API Calls: <span id="calls-counter">0</span> |
-        Last Refresh: <span id="last-update">Never</span> |
-        Last Attempt: <span id="last-attempt">Never</span>
+        Last Refresh: <span id="last-update">Never</span>
+        <!-- Last Attempt: <span id="last-attempt">Never</span> --> 
     </div>
     
     <div class="controls">
@@ -173,7 +173,7 @@
 
                 document.getElementById('calls-counter').innerText = jsonResponse.calls;
                 document.getElementById('last-update').innerText = new Date(jsonResponse.last_update * 1000).toLocaleTimeString(undefined, timeOptions);
-                document.getElementById('last-attempt').innerText = new Date(jsonResponse.last_attempt * 1000).toLocaleTimeString(undefined, timeOptions);
+                // document.getElementById('last-attempt').innerText = new Date(jsonResponse.last_attempt * 1000).toLocaleTimeString(undefined, timeOptions);
 
                 // Iterate through telemetry data and build cards
                 jsonResponse.data.forEach(item => {
