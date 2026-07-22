@@ -6,9 +6,14 @@
 #include <nlohmann/json.hpp>
 #include "crow_all.h"
 #include <chrono>
-#include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <ctime>
+
+// ================================ //
+// NOTE: // Code has been Optimized for concurrent reads: data is pre-serialized into a cache snapshot
+// to eliminate redundant parsing overhead on every user request.
+// ================================ //
 
 using namespace std;
 using json = nlohmann::json;
@@ -56,22 +61,20 @@ public:
 // ============================================================================
 class WeatherCache {
 private:
-    crow::json::wvalue::list data;
+    std::string cached_json_string; // Pre-serialized snapshot stored as a string to eliminate CPU parsing overhead on requests
     std::chrono::system_clock::time_point last_update;
-    std::chrono::system_clock::time_point last_attempt;
     int daily_calls = 0;
-    std::mutex mtx;
+    mutable std::shared_mutex smtx; // Readers-writer lock allowing high-concurrency read access
 
 public:
     // Initializes the cache timestamps with a backward offset to ensure an immediate first run
     WeatherCache() {
         last_update = std::chrono::system_clock::now() - std::chrono::hours(2);
-        last_attempt = std::chrono::system_clock::now() - std::chrono::hours(2);
     }
 
     // Updates the internal memory with new API data and tracks daily quota limits
     void updateCache(crow::json::wvalue::list&& new_data, int calls_made) {
-        lock_guard<mutex> lock(mtx);
+        std::unique_lock<std::shared_mutex> lock (smtx);
 
         auto now = std::chrono::system_clock::now();
         auto now_time_t = std::chrono::system_clock::to_time_t(now);
@@ -88,32 +91,27 @@ public:
         }
 
         if (!new_data.empty()) {
-            data = std::move(new_data);
             last_update = now;
         }
-
+        
         daily_calls += calls_made;
-    }
-
-    // Records the exact timestamp of a frontend API interaction
-    void recordAttempt() {
-        lock_guard<mutex> lock(mtx);
-        last_attempt = std::chrono::system_clock::now();
-    }
-
-    // Safely extracts a comprehensive snapshot of the system state for JSON delivery
-    crow::json::wvalue getSnapshot() {
-        lock_guard<mutex> lock(mtx);
-        auto last_update_sec = std::chrono::duration_cast<std::chrono::seconds>(last_update.time_since_epoch()).count();
-        auto last_attempt_sec = std::chrono::duration_cast<std::chrono::seconds>(last_attempt.time_since_epoch()).count();
 
         crow::json::wvalue response_obj;
         response_obj["calls"] = daily_calls;
-        response_obj["last_update"] = last_update_sec;
-        response_obj["last_attempt"] = last_attempt_sec;
-        response_obj["data"] = crow::json::wvalue(data);
+        response_obj["last_update"] = std::chrono::duration_cast<std::chrono::seconds>(last_update.time_since_epoch()).count();
+        response_obj["data"] = crow::json::wvalue(std::move(new_data));
 
-        return response_obj;
+        cached_json_string = response_obj.dump(); // Pre-serializes the payload once per cycle, offloading work from request threads
+    }
+
+    // NOTE: The legacy approach built the JSON response on every single request.
+    // With millions of concurrent users, that runtime serialization overhead would severely bottleneck the server.
+    // std::shared_lock replaces exclusive locking to allow unbounded parallel reads.
+
+    // Safely retrieves the pre-serialized cache snapshot using shared locking to support high-concurrency read access
+    std::string getCachedJson() const {
+        std::shared_lock<std::shared_mutex> lock(smtx);
+        return cached_json_string;
     }
 };
 
@@ -217,9 +215,6 @@ public:
 
             cache_ref.updateCache(move(new_data), cities.size());
 
-            // Throttling handled by condition_variable shutdown signal
-            // this_thread::sleep_for(chrono::hours(1));
-
             // Wait for 1 hour or until shutdown signal (running == false)
             std::unique_lock<std::mutex> lock(cv_m);
             cv.wait_for(lock, std::chrono::hours(1), [&running] { return !running; });
@@ -260,8 +255,10 @@ public:
 
         // Main telemetry endpoint with dynamic CORS boundaries
         CROW_ROUTE(app, "/api/weather")([this]() {
-            cache_ref.recordAttempt();
-            crow::response res(cache_ref.getSnapshot());
+            // Fetches the pre-serialized cache string directly, bypassing runtime JSON construction and avoiding CPU overhead
+            std::string payload = cache_ref.getCachedJson();
+            crow::response res(payload);
+            res.add_header("Content-Type", "application/json");
 
             // Evaluates environment to dictate browser security boundaries
             if (environment != "prod") {
