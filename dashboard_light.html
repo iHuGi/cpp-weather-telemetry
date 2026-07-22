@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard C++ Telemetry - Day Mode</title>
+    <style>
+        /* Footer styling - Day Mode */
+        footer {
+            text-align: center;
+            padding: 25px 10px;
+            margin-top: 60px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        footer p {
+            margin: 5px 0;
+        }
+
+        footer a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        footer a:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+
+        /* CSS styling for telemetry layout - Day Mode */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6; /* Light clean background */
+            color: #2d3748; /* Dark grey for readability */
+            margin: 0; padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #0056b3; /* Vibrant deep blue */
+            letter-spacing: 2px;
+        }
+        
+        /* Stats dashboard container */
+        .stats {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .controls { text-align: center; margin-bottom: 40px; }
+        
+        button {
+            background-color: #007bff; /* Vibrant blue button */
+            color: #ffffff;
+            border: none; padding: 12px 24px; font-size: 16px;
+            font-weight: bold; border-radius: 5px; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Card styling - Day Mode */
+        .card {
+            background-color: #ffffff;
+            border-left: 5px solid #007bff;
+            border-radius: 8px; padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            position: relative;
+            cursor: help;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .card h2 { margin: 0 0 10px 0; color: #1a202c; font-size: 1.2em; }
+        .temp { font-size: 1.4em; font-weight: bold; margin: 10px 0; color: #007bff; }
+        .condition { font-size: 0.75em; color: #718096; text-transform: uppercase; font-weight: bold; }
+        #loading { text-align: center; color: #718096; display: none; margin-top: 20px; font-weight: bold; }
+
+        /* Tooltip logic */
+        .card::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #2d3748;
+            color: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-line;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .card:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Modal Background */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+
+        /* Modal Box - Day Mode */
+        .modal-content {
+            background-color: #ffffff; border: 1px solid #e2e8f0;
+            border-radius: 8px; padding: 30px; max-width: 600px; width: 90%;
+            color: #2d3748; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+
+        .modal-content p { color: #4a5568; }
+        .modal-content code { background-color: #edf2f7; padding: 2px 6px; border-radius: 4px; color: #0056b3; font-weight: bold; }
+
+        .close-btn {
+            position: absolute; top: 15px; right: 20px;
+            color: #a0aec0; font-size: 24px; cursor: pointer; font-weight: bold;
+            transition: color 0.2s ease;
+        }
+        
+        .close-btn:hover {
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌍 GLOBAL WEATHER TELEMETRY</h1>
+
+    <div class="stats">
+        Daily API Calls: <span id="calls-counter">0</span> |
+        Last Refresh: <span id="last-update">Never</span> |
+        Last Attempt: <span id="last-attempt">Never</span>
+    </div>
+    
+    <div class="controls">
+        <button onclick="fetchTemperatures()">Validate Temperatures</button>
+        <div id="loading">Pinging C++ Server...</div>
+    </div>
+
+    <div class="grid" id="dashboard"></div>
+
+    <script>
+        /**
+         * @brief Fetches weather telemetry from the C++ backend.
+         * Updates the UI stats and renders the city grid dynamically.
+         */
+        async function fetchTemperatures() {
+            const dashboard = document.getElementById('dashboard');
+            const loading = document.getElementById('loading');
+
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+
+            dashboard.innerHTML = '';
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('http://localhost:8080/api/weather');
+                const jsonResponse = await response.json();
+
+                document.getElementById('calls-counter').innerText = jsonResponse.calls;
+                document.getElementById('last-update').innerText = new Date(jsonResponse.last_update * 1000).toLocaleTimeString(undefined, timeOptions);
+                document.getElementById('last-attempt').innerText = new Date(jsonResponse.last_attempt * 1000).toLocaleTimeString(undefined, timeOptions);
+
+                // Iterate through telemetry data and build cards
+                jsonResponse.data.forEach(item => {
+                    const cityName = {
+                        "Evora": "Évora",
+                        "Béja": "Beja",
+                        "Lisbon": "Lisboa",
+                    }[item.city] || item.city;
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    
+                    // Inject coordinates into data-tooltip attribute for CSS hover display
+                    card.setAttribute('data-tooltip',
+                        `Lat: ${item.lat}\n` +
+                        `Lon: ${item.lon}\n` +
+                        `-------------------\n` +
+                        `Max: ${item.temp_max}°C\n` +
+                        `Min: ${item.temp_min}°C`
+                    );
+                    
+                    card.innerHTML = `
+                        <h2>${cityName}</h2>
+                        <div class="temp">${item.temp} °C</div>
+                        <div class="condition">${item.condition}</div>
+                    `;
+                    dashboard.appendChild(card);
+                });
+                
+            } catch (error) {
+                dashboard.innerHTML = `<h2 style="color:#e53e3e; text-align:center;">[!] C++ Server Offline</h2>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Modal Logic
+        function openModal() {
+            document.getElementById('techModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('techModal').style.display = 'none';
+        }
+    </script>
+
+    <div id="techModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 style="color: #0056b3; margin-top:0;">⚙️ Technical Overview</h2>
+            
+            <p><strong>Application Purpose:</strong><br>
+            This dashboard provides real-time atmospheric telemetry for cities across Portugal.
+            By hovering over any city card, you can view precise geographical coordinates alongside the
+            current maximum and minimum temperatures at that exact moment.</p>
+
+            <p><strong>Architectural Stack:</strong><br>
+            Built natively in <strong>C++20</strong> on Linux, the backend operates on a strict multi-threaded architecture.
+            It utilizes <code>libcurl</code> for non-blocking network I/O and the <code>Crow</code>
+            framework for high-concurrency REST API delivery.</p>
+            
+            <p><strong>Thread Safety & Lifecycle:</strong><br>
+            The background telemetry ingest is completely decoupled from the API serving layer
+            via <code>std::atomic</code> signals and a locked <code>std::mutex</code> cache.
+            This ensures zero-latency reads for incoming HTTP requests and proper resource cleanup during
+            <em>graceful shutdowns</em>. The entire microservice is containerized via Docker for lightweight,
+            environment-agnostic deployment.</p>
+        </div>
+    </div>
+</body>
+<footer>
+    <p>Developed with C++ by <strong>Hugo Azevedo</strong></p>
+    <p>
+        <a href="javascript:void(0);" onclick="openModal()">Technical Overview</a> |
+        <a href="https://github.com/iHuGi/cpp-weather-telemetry" target="_blank" rel="noopener">GitHub Repo</a>
+    </p>
+</footer>
+</html>

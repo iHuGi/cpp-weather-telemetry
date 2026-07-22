@@ -318,11 +318,12 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
+    // Added PT as suffix to cities so everyone nknows it's Portuguese cities
     const vector<string> cities = {
-        "Aveiro","Beja,PT","Braga","Braganca","Castelo Branco",
-        "Coimbra","Evora","Faro","Funchal","Guarda",
-        "Leiria","Lisbon","Ponta Delgada","Portalegre","Porto",
-        "Santarem","Setubal","Viana do Castelo","Vila Real","Viseu"
+        "Aveiro,PT","Beja,PT","Braga,PT","Braganca,PT","Castelo Branco,PT",
+        "Coimbra,PT","Evora,PT","Faro,PT","Funchal,PT","Guarda,PT",
+        "Leiria,PT","Lisbon,PT","Ponta Delgada,PT","Portalegre,PT","Porto,PT",
+        "Santarem,PT","Setubal,PT","Viana do Castelo,PT","Vila Real,PT","Viseu,PT"
     };
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
