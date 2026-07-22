@@ -11,7 +11,7 @@ A high-performance microservice architecture designed to ingest real-time atmosp
 * **Web Framework:** `Crow` (Multithreaded REST API)
 * **Data Parsing:** `nlohmann/json`
 * **Concurrency:** `std::thread`, `std::mutex`, `std::lock_guard`
-* **Infrastructure:** Docker (Multi-stage) / Linux / WSL2
+* **Infrastructure:** Docker Compose / Linux / WSL2
 
 ---
 
@@ -25,7 +25,7 @@ A high-performance microservice architecture designed to ingest real-time atmosp
 
 ### 3. System Deployment
 
-The system supports two deployment modes: **Native Compilation** for local development and **Containerized Deployment** for environment-agnostic execution.
+The system supports multiple deployment modes, ranging from local compilation to declarative container orchestration.
 
 #### Option A: Native Build
 
@@ -40,32 +40,39 @@ make
 
 ```
 
-#### Option B: Containerized Deployment (Recommended)
+#### Option B: Containerized Deployment via Shell Scripts
 
-Utilises a **Multi-Stage Docker Build** to encapsulate the environment, keeping the final production image lightweight and secure. It injects local `.env` configurations at runtime via a volume mount.
-
-**1. Build the Image:**
+Utilises a **Multi-Stage Docker Build** to encapsulate the environment, keeping the final production image lightweight and secure.
 
 ```bash
+# Build the Image
 docker build -t cpp-weather-api .
 
-```
-
-**2. Run the Container:**
-
-```bash
-# Grant execution permissions (first time only)
-chmod +x run_container.sh stop_service.sh
-
-# Start the service
-./run_container.sh
+# Start the service (requires execution permissions: chmod +x run_container.sh)
+./legacy/run_container.sh
 
 # Stop the service
-./stop_service.sh
+./legacy/stop_service.sh
 
 ```
 
-> **Engineering Note:** In both modes, the application binds to port `8080`. The system defaults to `DEV` mode (open CORS). To run in production mode with strict CORS boundaries, pass the `--prod` argument to the binary or runtime script.
+#### Option C: Docker Compose Deployment (HIGHLY RECOMMENDED 💥)
+
+The modern, declarative Infrastructure-as-Code (IaC) approach. Manages the build process, environment variable injection, and port mapping seamlessly.
+
+```bash
+# Build the image and start the service in the background
+docker compose up -d --build
+
+# View real-time container logs
+docker compose logs -f
+
+# Stop and gracefully remove the container and network
+docker compose down
+
+```
+
+> **Engineering Note:** In all modes, the application binds to port `8080`. The system defaults to `DEV` mode (open CORS). To run in production mode with strict CORS boundaries, pass the `--prod` argument to the binary, or uncomment the `command: ["--prod"]` directive in the `docker-compose.yml`.
 
 ---
 
@@ -119,4 +126,4 @@ The project includes a lightweight, dark-mode dashboard (`dashboard.html` / JS) 
 
 * **Environment Variables:** All secrets and API keys are strictly excluded via `.gitignore`. Ensure a `.env` file exists with the `WEATHER_API` key defined.
 * **Binary Isolation:** All compiled objects and executables are siloed in the `bin/` directory.
-* **Infrastructure as Code:** Shell scripts handle Docker lifecycle management, providing a clean developer experience.
+* **Infrastructure as Code:** Docker Compose handles container orchestration, while legacy deployment shell scripts are cleanly archived in the `legacy/` directory for reference.
