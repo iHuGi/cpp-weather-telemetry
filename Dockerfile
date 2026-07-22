@@ -24,6 +24,15 @@ RUN mkdir -p bin && \
     -pthread
 
 # ============================================================================
+# AUTOMATED CI/CD PIPELINE
+# ============================================================================
+# Compile the test binary
+RUN g++ ${CXXFLAGS} test_api.cpp -o bin/test_api -lcurl -pthread
+
+# Run the tests, if this fails, the Docker build aborts immediately.
+RUN ./bin/test_api
+
+# ============================================================================
 # STAGE 2: RUNTIME
 # ============================================================================
 FROM ubuntu:24.04

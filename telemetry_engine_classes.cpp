@@ -287,6 +287,7 @@ public:
 // ============================================================================
 // 5. ENTRY POINT
 // ============================================================================
+#ifndef UNIT_TEST
 int main(int argc, char * argv[]) {
 
     const int port = 8080;
@@ -365,3 +366,4 @@ int main(int argc, char * argv[]) {
     curl_global_cleanup();
     return 0;
 }
+#endif
